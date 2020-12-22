@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nuevo Producto</title>
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.1.1/css/bootstrap.min.css" rel="stylesheet"
+        id="bootstrap-css">
+
+
+</head>
+
+<body>
+    <div class="container register">
+        <div class="row">
+            <div class="col-md-12">
+                <div class="tab-pane fade show active text-align form-new" id="home" role="tabpanel"
+                    aria-labelledby="home-tab">
+                    <h3 class="register-heading">Nuevo Producto</h3>
+                    <div class="row register-form">
+                        <div class="col-md-8">
+                            <form method="post" autocomplete="off" name="google-sheet">
+                                <input type="hidden" name="ID" id="identificador" class="form-control" value="" />
+                              
+                                <div class="form-group">
+                                    <input type="text" id="cancion" name="Titulo" class="form-control"
+                                        placeholder="Nombre del Producto" required="" />
+                                </div>
+                                <div class="form-group">
+                                    <input type="file" id="file" class="form-control-file" name="file" /> <br>
+                                  
+                                </div>
+                                <input type="hidden" name="Url" id="linkb" class="form-control" value="" />
+
+                                <div class="form-group">
+                                    <label>Seleccione el tipo de publicacion</label>
+                                    <select class='form-control' id='tipo' name="Tipo">
+                                        <option>Perfume</option>
+                                        <option>Oferta</option>
+                                        <option>Portada</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Seleccione para:</label> <select class='form-control' id='para' name="Para"  > <br> <br>
+                                        <option>Hombre</option>
+                                        <option>Mujer</option>
+                                        </select>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label>Descripcion</label><textArea class="form-control" id="descripcion" name="Descripcion"></textArea>
+                                </div>
+
+                                <div class="form-group">
+                                    <input type="number" id="cancion" name="Precio" class="form-control"
+                                    placeholder="Precio" required="" />
+                                </div>
+                                <span id="linkbox"></span>
+                                <div class="form-group">
+                                    <input type="submit" id="guardar" name="submit" class="btnSubmit btn-block"
+                                        value="Guardar" />
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://www.gstatic.com/firebasejs/7.14.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/7.14.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/7.14.0/firebase-storage.js"></script>
+    <script>
+        const scriptURL = 'https://script.google.com/macros/s/AKfycbyv7O9yWJ3OmD4HCZWeRl2YeWHAFT3gabQ0Ji7aaisMnYnNZbTYYJrxzQ/exec'
+        const form = document.forms['google-sheet']
+
+
+        var firebaseConfig = {
+            apiKey: "AIzaSyBcEtjP_f5CMCpFNKt-owFkgPJfDBXp5KM",
+            authDomain: "pusw-pwa.firebaseapp.com",
+            databaseURL: "https://pusw-pwa.firebaseio.com",
+            projectId: "pusw-pwa",
+            storageBucket: "pusw-pwa.appspot.com",
+            messagingSenderId: "834022845134",
+            appId: "1:834022845134:web:e3dbceaaac555ed6bfbe9f",
+            measurementId: "G-X6HBCRKT42"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+
+
+        var auth = firebase.auth();
+        var storageRef = firebase.storage().ref();
+
+
+        function handleFileSelect(evt) {
+            evt.stopPropagation();
+            evt.preventDefault();
+            var file = evt.target.files[0];
+
+            var metadata = {
+                'contentType': file.type
+            };
+ 
+            var producto = generarID();
+            document.getElementById('linkbox').innerHTML = "Subiendo.....";
+            document.getElementById("guardar").disabled = true;
+            storageRef.child("Un Sentimiento/" + producto).put(file, metadata).then(function (snapshot) {
+                console.log('Uploaded', snapshot.totalBytes, 'bytes.');
+                console.log('File metadata:', snapshot.metadata);
+                // Let's get a download URL for the file.
+                snapshot.ref.getDownloadURL().then(function (url) {
+                    console.log('File available at', url);
+                    // [START_EXCLUDE]
+                    document.getElementById('linkbox').innerHTML = 'Subido Correctamente';
+                    document.getElementById("guardar").disabled = false;
+                    document.getElementById('linkb').value = url;
+                    // [END_EXCLUDE]
+                });
+            }).catch(function (error) {
+
+                // [START onfailure]
+                alert('Upload failed:', error);
+                // [END onfailure]
+            });
+            // [END oncomplete]
+
+
+
+        }
+
+        window.onload = function () {
+            document.getElementById('file').addEventListener('change', handleFileSelect, false);
+            document.getElementById('file').disabled = true;
+
+            auth.onAuthStateChanged(function (user) {
+                if (user) {
+                    console.log('Anonymous user signed-in.', user);
+                    document.getElementById('file').disabled = false;
+                } else {
+                    console.log('There was no anonymous session. Creating a new anonymous user.');
+                    // Sign the user in anonymously since accessing Storage requires the user to be authorized.
+                    auth.signInAnonymously().catch(function (error) {
+                        if (error.code === 'auth/operation-not-allowed') {
+                            window.alert('Anonymous Sign-in failed. Please make sure that you have enabled anonymous ' +
+                                'sign-in on your Firebase project.');
+                        }
+                    });
+                }
+            });
+        }
+
+
+        form.addEventListener('submit', e => {
+            document.getElementById("guardar").disabled = true;
+            document.getElementById('linkbox').innerHTML = 'Espere, guardando informacion....';
+            document.getElementById('descripcion').value += ' Para mas informacion, De click en el boton de abajo';
+            e.preventDefault()
+            fetch(scriptURL, { method: 'POST', body: new FormData(form) })
+                .then(response => alerta())
+                .catch(error => console.error('Error!', error.message))
+
+        })
+
+        function alerta() {
+            document.getElementById('linkbox').innerHTML = 'Informacion guardada :D';
+            document.getElementById("guardar").disabled = false;
+        }
+
+        function generarID(){
+ 
+       var caracteres = "ABCDEFGHIJKMNPQRTUWVXYZ";
+       var contrasena = "";
+       for (i=0; i<3; i++) contrasena +=caracteres.charAt(Math.floor(Math.random()*caracteres.length));
+       contrasena += "-" + Math.floor((Math.random() * (300 - 1 + 1)) + 1);
+       document.getElementById('identificador').value = contrasena;
+       alert(contrasena);
+      return contrasena;
+
+        }
+    </script>
+
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.1.1/js/bootstrap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+</body>
+
+</html>
